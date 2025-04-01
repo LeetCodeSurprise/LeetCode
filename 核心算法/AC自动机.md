@@ -54,3 +54,87 @@ AC 自动机的构建和使用主要分为以下三个核心步骤：
 9.  **代码实现细节:** 注意指针（或引用）的操作，避免死循环，正确处理边界条件（如根节点）。
 
 理解并正确实现这三个核心步骤，特别是失败指针的构建和信息合并，是掌握 AC 自动机的关键。注意这些事项能帮助你编写出正确且健壮的 AC 自动机实现。
+
+```python
+
+class Node:
+    def __init__(self):
+        self.children = {}
+        self.fail = None
+        self.out = []
+    
+class ACAutomation:
+    def __init__(self,patterns):
+        self.root = Node()
+        self.patterns = patterns
+    
+
+    def _build_trie(self):
+
+        for word in self.patterns:
+            node = self.root
+            for char in word:
+                if char not in node.children:
+                    node.children[char]=Node()
+                node = node.children[char]
+            # 注意，这里一定是append,有可能有重复
+            node.out.append(word)
+    
+    def _build_failure_link(self):
+        queue = []
+
+        for node in self.root.children.values():
+            queue.append(node)
+            node.fail = self.root
+        
+        while queue:
+            node = queue.pop()
+
+            cur_fail = node.fail
+            
+            for char, char_node in node.items():
+
+                # 注意这里不能忘记入队
+                queue.append(char_node)
+
+                while cur_fail is not None and char not in cur_fail.children:
+                    cur_fail = cur_fail.fail
+                
+                # while结束条件1, 因为root.fail is None 我们没有给root的fail赋值
+                # 当fail指向root，却root没有当前字符时，cur_fail 指向root.fail, 也就是None
+                if cur_fail is None:
+                    char_node.fail = self.root
+                # while 结束条件 2： char in cur_fail.children
+                else:
+                    char_node.fail = cur_fail.children[char]
+                
+                # 这里要合并他的fail指向的输出，没有则为空
+                char_node.out.extend(char_node.fail.out)
+
+    def search(self,text):
+        results = []
+
+        cur_node = self.root
+
+        for i in range(len(text)):
+            char = text[i]
+
+            while cur_node is not None and char not in cur_node.children:
+                cur_node = cur_node.fail
+            
+            # while 结束条件1, cur_node 指向了root.fail, 
+            # root 下面没有对应的字符，跳过
+            if cur_node is None:
+                cur_node = self.root
+                continue
+            
+            # while 结束条件2 char 在cur_node.children
+            cur_node = cur_node.children[char]
+
+            # 检查结果
+            if len(cur_node.out) > 0:
+                for word in cur_node:
+                    results.append((word,i-len(word)))
+        return results
+      
+```
